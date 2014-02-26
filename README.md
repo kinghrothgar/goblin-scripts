@@ -1,4 +1,4 @@
 goblin-scripts
-==============
+=====
 
-Useful scripts for goblin
+Scripts for goblin
