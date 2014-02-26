@@ -1,7 +1,11 @@
 #!/bin/bash
 
-# Any file extensions you want to be excluded from syntax highlighting
-EXLUDE_SYNTAX='(jpg|jpeg|png|pdf)'
+# Syntax highlighting based on file extension default
+SYNTAX=true
+
+# Any file extensions you want to be excluded from syntax highlighting.
+# This has highest priority when deciding whether to do syntax.
+EXLUDE_SYNTAX='(jpg|jpeg|png|pdf|exe|iso|tar|gz|bz2|rar|zip|7z)'
 
 # Force any file extension in REPLACE_WHAT with corresponding REPLACE_WITH
 REPLACE_WHAT=(erb)
@@ -24,24 +28,32 @@ if [[ "${#REPLACE_WHAT[@]}" != "${#REPLACE_WITH[@]}" ]]; then
     exit 1
 fi
 
-# Print out help
+# Handle arguments like I handle your mom... dirty
 for arg in "$@"; do
     if [[ "$arg" = "-h" || "$arg" = "--help" ]]; then
         help
         exit
     fi
+    if [[ "$arg" = "-s" || "$arg" = "--syntax" ]]; then
+        SYNTAX=true
+        continue
+    fi
+    if [[ "$arg" = "--nosyntax" ]]; then
+        SYNTAX=false
+        continue
+    fi
+    # FILE: first positional argument
+    if [ -z $FILE ]; then
+        FILE=$arg
+        continue
+    fi
+    if [ -z $HORDE ]; then
+        HORDE=$arg
+    fi
 done
 
-# Verify horde name
-if ! [[ $2 =~ ^[a-zA-Z]*$ ]]; then
-    echo "Error: horde name must contain only letters"
-    echo ""
-    help
-    exit 1
-fi
-
 # Verify file operand exists
-if [ -z $1 ]; then
+if [ -z $FILE ]; then
     echo "Error: missing file operand"
     echo ""
     help
@@ -49,46 +61,63 @@ if [ -z $1 ]; then
 fi
 
 # Verify file
-if ! [ -f $1 ]; then
+if ! [ -f $FILE ]; then
     echo "Error: cannot stat '$1': No such file or directory"
     echo ""
     help
     exit 1
 fi
 
-# Parse extension with exludes
-language=''
-if [[ $1 =~ \.[a-zA-Z]+$ ]] && ! [[ $1 =~ \.$EXLUDE_SYNTAX$ ]]; then
-    language=`echo $1 | sed -rn 's/.*\.([a-zA-Z]+$)/\1/p'`
+# Verify horde name
+if ! [[ $HORDE =~ ^[a-zA-Z]*$ ]]; then
+    echo "Error: horde name must contain only letters"
+    echo ""
+    help
+    exit 1
 fi
 
-# Handle replaces. It's nasty, I know
-if [ -n "$language" ]; then
-    #length=${#REPLACE_WHAT[@]}
-    for i in "${!REPLACE_WHAT[@]}"; do
-        if [[ "${REPLACE_WHAT[$i]}" = "$language" ]]; then
-            language=${REPLACE_WITH[$i]}
-            break
-        fi
-    done
+# Check if in extension is in exclude list
+if [[ $FILE =~ \.$EXLUDE_SYNTAX$ ]]; then
+    SYNTAX=false
 fi
 
-# Give user chance to change language
-if [ -z "$language" ]; then
-    read -p "Language syntax highlighting: " formatting
-else
-    read -p "Language syntax highlighting (default=$language): " formatting 
-fi
 
-# Deal with users response
-if [ -n "$formatting" ]; then
-    formatting='?'$formatting
-elif [ -n "$language" ]; then
-    formatting='?'$language
+# Deal with syntax
+formatting=''
+if [ "$SYNTAX" = true ]; then
+    # Parse extension with exludes
+    if [[ $FILE =~ \.[a-zA-Z]+$ ]]; then
+        language=`echo $FILE | sed -rn 's/.*\.([a-zA-Z]+$)/\1/p'`
+    fi
+    
+    # Handle replaces. It's nasty, I know
+    if [ -n "$language" ]; then
+        #length=${#REPLACE_WHAT[@]}
+        for i in "${!REPLACE_WHAT[@]}"; do
+            if [[ "${REPLACE_WHAT[$i]}" = "$language" ]]; then
+                language=${REPLACE_WITH[$i]}
+                break
+            fi
+        done
+    fi
+    
+    # Give user chance to change language
+    if [ -z "$language" ]; then
+        read -p "Language syntax highlighting: " formatting
+    else
+        read -p "Language syntax highlighting (default=$language): " formatting 
+    fi
+    
+    # Deal with users response
+    if [ -n "$formatting" ]; then
+        formatting='?'$formatting
+    elif [ -n "$language" ]; then
+        formatting='?'$language
+    fi
 fi
 
 # Upload and get link
-link=`cat $1 | curl -F 'gob=<-' http://gobin.io/$2 2>/dev/null | tr -d '\n'`$formatting
+link=`cat $FILE | curl -F 'gob=<-' http://gobin.io/$HORDE 2>/dev/null | tr -d '\n'`$formatting
 # Copy link to clipboard if xsel installed
 if xsel -v foo >/dev/null 2>&1; then
     echo $link | tr -d '\n' | xsel -b -i
