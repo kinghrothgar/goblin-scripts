@@ -19,7 +19,7 @@ function help {
         
 Uploads file to $DOMAIN and returns link with syntax highlighting
 param attached based of file extension.  Will copy link to clipboard
-if xsel is installed."
+if xsel or pbcopy is installed."
 }
 
 # Verfiy REPLACE Arrays are the same length
@@ -121,7 +121,10 @@ link=`cat $FILE | curl -F 'gob=<-' http://gobin.io/$HORDE 2>/dev/null | tr -d '\
 # Copy link to clipboard if xsel installed
 if xsel -v foo >/dev/null 2>&1; then
     echo $link | tr -d '\n' | xsel -b -i
+elif pbcopy -help >/dev/null 2>&1; then
+    echo $link | tr -d '\n' | pbcopy
 fi
+
 # Print out link
 echo $link
 exit
