@@ -15,11 +15,22 @@ REPLACE_WITH=(rb)
 DOMAIN='gobin.io'
 
 function help {
+    if [ "$SYNTAX" = true ]; then
+        syntax="(DEFAULT)"
+    else
+        nosyntax="(DEFAULT)"
+    fi
+
     echo "Usage: `basename $0` FILE [HORDE] 
         
-Uploads file to $DOMAIN and returns link with syntax highlighting
-param attached based of file extension.  Will copy link to clipboard
-if xsel or pbcopy is installed."
+Uploads FILE to $DOMAIN and returns link with syntax highlighting param
+attached based of file extension.  Will copy link to clipboard if xsel (Linux)
+or pbcopy (OSX) is installed.  If HORDE is given, FILE is uploaded to HORDE
+which can be accessed at http://$DOMAIN/h/HORDE
+
+  -s, --syntax          enable syntax highlighting $syntax
+      --nosyntax        disable syntax highlighting $nosyntax
+"
 }
 
 # Verfiy REPLACE Arrays are the same length
