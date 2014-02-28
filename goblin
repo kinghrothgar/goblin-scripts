@@ -5,7 +5,7 @@ SYNTAX=true
 
 # Any file extensions you want to be excluded from syntax highlighting.
 # This has highest priority when deciding whether to do syntax.
-EXLUDE_SYNTAX='(gif|jpg|jpeg|png|pdf|exe|iso|tar|gz|bz2|rar|zip|7z)'
+EXLUDE_SYNTAX='(gif|jpg|jpeg|png|pdf|exe|iso|tar|gz|bz2|rar|zip|7z|pub)'
 
 # Force any file extension in REPLACE_WHAT with corresponding REPLACE_WITH
 REPLACE_WHAT=(erb)
