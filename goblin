@@ -21,15 +21,17 @@ function help {
         nosyntax="(DEFAULT)"
     fi
 
-    echo "Usage: `basename $0` FILE [HORDE] 
+    echo "Usage: `basename $0` [OPTION] [FILE] [HORDE] 
         
 Uploads FILE to $DOMAIN and returns link with syntax highlighting param
 attached based of file extension.  Will copy link to clipboard if xsel (Linux)
 or pbcopy (OSX) is installed.  If HORDE is given, FILE is uploaded to HORDE
-which can be accessed at http://$DOMAIN/h/HORDE
+which can be accessed at http://$DOMAIN/h/HORDE.  FILE is required unless the
+clipboard option is present.
 
   -s, --syntax          enable syntax highlighting $syntax
       --nosyntax        disable syntax highlighting $nosyntax
+  -c, --clipboard       uploads the clipboard instead of a file
 "
 }
 
@@ -53,9 +55,19 @@ for arg in "$@"; do
         SYNTAX=false
         continue
     fi
+    if [[ "$arg" = "-c" || "$arg" = "--clipboard" ]]; then
+        UPLOAD="clipboard"
+        if xsel -v foo >/dev/null 2>&1; then
+            FILE="xsel -b -o"
+        elif pbpaste -help >/dev/null 2>&1; then
+            FILE="pbpaste"
+        fi
+        continue
+    fi
     # FILE: first positional argument
-    if [ -z $FILE ]; then
-        FILE=$arg
+    if [ -z "$FILE" ]; then
+        UPLOAD="file"
+        FILE="$arg"
         continue
     fi
     if [ -z $HORDE ]; then
@@ -64,15 +76,19 @@ for arg in "$@"; do
 done
 
 # Verify file operand exists
-if [ -z $FILE ]; then
-    echo "Error: missing file operand"
+if [ -z "$FILE" ]; then
+    if [[ "$UPLOAD" = "clipboard" ]]; then
+        echo "Error: missing xsel or pbpaster"
+    else
+        echo "Error: missing file operand"
+    fi
     echo ""
     help
     exit 1
 fi
 
 # Verify file
-if ! [ -f $FILE ]; then
+if [[ "$UPLOAD" = "file" ]] && ! [ -f "$FILE" ]; then
     echo "Error: cannot stat '$1': No such file or directory"
     echo ""
     help
@@ -88,7 +104,7 @@ if ! [[ $HORDE =~ ^[a-zA-Z]*$ ]]; then
 fi
 
 # Check if in extension is in exclude list
-if [[ $FILE =~ \.$EXLUDE_SYNTAX$ ]]; then
+if [[ "$UPLOAD" = "file" && $FILE =~ \.$EXLUDE_SYNTAX$ ]]; then
     SYNTAX=false
 fi
 
@@ -97,7 +113,7 @@ fi
 formatting=''
 if [ "$SYNTAX" = true ]; then
     # Parse extension with exludes
-    if [[ $FILE =~ \.[a-zA-Z]+$ ]]; then
+    if [[ "$UPLOAD" = "file" && $FILE =~ \.[a-zA-Z]+$ ]]; then
         language=`echo $FILE | sed -rn 's/.*\.([a-zA-Z]+$)/\1/p'`
     fi
     
@@ -128,7 +144,11 @@ if [ "$SYNTAX" = true ]; then
 fi
 
 # Upload and get link
-link=`cat $FILE | curl -F 'gob=<-' http://gobin.io/$HORDE 2>/dev/null | tr -d '\n'`$formatting
+if [[ "$UPLOAD" = "file" ]]; then
+    link=`cat $FILE | curl -F 'gob=<-' http://gobin.io/$HORDE 2>/dev/null | tr -d '\n'`$formatting
+else
+    link=`eval $FILE | curl -F 'gob=<-' http://gobin.io/$HORDE 2>/dev/null | tr -d '\n'`$formatting
+fi
 # Copy link to clipboard if xsel installed
 if xsel -v foo >/dev/null 2>&1; then
     echo $link | tr -d '\n' | xsel -b -i
