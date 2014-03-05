@@ -145,10 +145,20 @@ fi
 
 # Upload and get link
 if [[ "$UPLOAD" = "file" ]]; then
-    link=`cat $FILE | curl -F 'gob=<-' http://gobin.io/$HORDE 2>/dev/null | tr -d '\n'`$formatting
+    links=`cat $FILE | curl -F 'gob=<-' http://gobin.io/$HORDE 2>/dev/null`
 else
-    link=`eval $FILE | curl -F 'gob=<-' http://gobin.io/$HORDE 2>/dev/null | tr -d '\n'`$formatting
+    links=`eval $FILE | curl -F 'gob=<-' http://gobin.io/$HORDE 2>/dev/null`
 fi
+
+# Check if there was an error
+if [[ $links == *Error:* ]]; then
+    echo $links
+    exit 1
+fi
+
+# Get the link to the gob
+link=`echo "$links" | grep -v delete`
+
 # Copy link to clipboard if xsel installed
 if xsel -v foo >/dev/null 2>&1; then
     echo $link | tr -d '\n' | xsel -b -i
@@ -156,6 +166,6 @@ elif pbcopy -help >/dev/null 2>&1; then
     echo $link | tr -d '\n' | pbcopy
 fi
 
-# Print out link
-echo $link
+# Print out links
+echo "$links"
 exit
