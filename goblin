@@ -14,6 +14,9 @@ REPLACE_WITH=(rb)
 # The domain to upload to
 DOMAIN='gobin.io'
 
+# Use http or https
+SCHEME='https'
+
 function help {
     if [ "$SYNTAX" = true ]; then
         syntax="(DEFAULT)"
@@ -26,7 +29,7 @@ function help {
 Uploads FILE to $DOMAIN and returns link with syntax highlighting param
 attached based of file extension.  Will copy link to clipboard if xsel (Linux)
 or pbcopy (OSX) is installed.  If HORDE is given, FILE is uploaded to HORDE
-which can be accessed at http://$DOMAIN/h/HORDE.  FILE is required unless the
+which can be accessed at http://$DOMAIN/horde/HORDE.  FILE is required unless the
 clipboard option is present.
 
   -s, --syntax          enable syntax highlighting $syntax
@@ -145,9 +148,9 @@ fi
 
 # Upload and get link
 if [[ "$UPLOAD" = "file" ]]; then
-    links=`cat $FILE | curl -F 'gob=<-' http://gobin.io/$HORDE 2>/dev/null`
+    links=`cat $FILE | curl -F 'gob=<-' $SCHEME://gobin.io/$HORDE 2>/dev/null`
 else
-    links=`eval $FILE | curl -F 'gob=<-' http://gobin.io/$HORDE 2>/dev/null`
+    links=`eval $FILE | curl -F 'gob=<-' $SCHEME://gobin.io/$HORDE 2>/dev/null`
 fi
 
 # Check if there was an error
@@ -157,7 +160,8 @@ if [[ $links == *Error:* ]]; then
 fi
 
 # Get the link to the gob
-link=`echo "$links" | grep -v delete`
+link=`echo "$links" | grep -v delete`$formatting
+delete_link=`echo "$links" | grep delete`
 
 # Copy link to clipboard if xsel installed
 if xsel -v foo >/dev/null 2>&1; then
@@ -167,5 +171,6 @@ elif pbcopy -help >/dev/null 2>&1; then
 fi
 
 # Print out links
-echo "$links"
+echo "$link"
+echo "$delete_link"
 exit
