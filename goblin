@@ -5,7 +5,7 @@ SYNTAX=true
 
 # Any file extensions you want to be excluded from syntax highlighting.
 # This has highest priority when deciding whether to do syntax.
-EXLUDE_SYNTAX='(gif|jpg|jpeg|png|pdf|exe|iso|tar|gz|bz2|rar|zip|7z|pub)'
+EXCLUDE_SYNTAX='(gif|jpg|jpeg|png|pdf|exe|iso|tar|gz|bz2|rar|zip|7z|pub)'
 
 # Force any file extension in REPLACE_WHAT with corresponding REPLACE_WITH
 REPLACE_WHAT=(erb)
@@ -24,8 +24,8 @@ function help {
         nosyntax="(DEFAULT)"
     fi
 
-    echo "Usage: `basename $0` [OPTION] [FILE] [HORDE] 
-        
+    echo "Usage: `basename $0` [OPTION] [FILE] [HORDE]
+
 Uploads FILE to $DOMAIN and returns link with syntax highlighting param
 attached based of file extension.  Will copy link to clipboard if xsel (Linux)
 or pbcopy (OSX) is installed.  If HORDE is given, FILE is uploaded to HORDE
@@ -107,7 +107,7 @@ if ! [[ $HORDE =~ ^[a-zA-Z]*$ ]]; then
 fi
 
 # Check if in extension is in exclude list
-if [[ "$UPLOAD" = "file" && $FILE =~ \.$EXLUDE_SYNTAX$ ]]; then
+if [[ "$UPLOAD" = "file" && $FILE =~ \.$EXCLUDE_SYNTAX$ ]]; then
     SYNTAX=false
 fi
 
@@ -117,9 +117,16 @@ formatting=''
 if [ "$SYNTAX" = true ]; then
     # Parse extension with exludes
     if [[ "$UPLOAD" = "file" && $FILE =~ \.[a-zA-Z]+$ ]]; then
-        language=`echo $FILE | sed -rn 's/.*\.([a-zA-Z]+$)/\1/p'`
+        case `uname` in
+            "Linux" )
+                language=`echo $FILE | sed -rn 's/.*\.([a-zA-Z]+$)/\1/p'`;;
+            "Darwin" )
+                language=`echo $FILE | sed -En 's/.*\.([a-zA-Z]+$)/\1/p'`;;
+            * )
+                language="";;
+        esac
     fi
-    
+
     # Handle replaces. It's nasty, I know
     if [ -n "$language" ]; then
         #length=${#REPLACE_WHAT[@]}
@@ -130,14 +137,14 @@ if [ "$SYNTAX" = true ]; then
             fi
         done
     fi
-    
+
     # Give user chance to change language
     if [ -z "$language" ]; then
         read -p "Language syntax highlighting: " formatting
     else
-        read -p "Language syntax highlighting (default=$language): " formatting 
+        read -p "Language syntax highlighting (default=$language): " formatting
     fi
-    
+
     # Deal with users response
     if [ -n "$formatting" ]; then
         formatting='?'$formatting
